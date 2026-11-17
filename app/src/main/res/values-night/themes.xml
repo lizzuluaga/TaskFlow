@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Modo noche: se usa automáticamente cuando el teléfono tiene el tema oscuro -->
+    <style name="Theme.TaskFlow" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#121119</item>
+        <item name="android:statusBarColor">#121119</item>
+        <item name="android:navigationBarColor">#121119</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -23,7 +23,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -70,7 +73,9 @@ fun TaskFlowScreen(
     onTaskClick: (Int) -> Unit,
     onNewTaskClick: () -> Unit,
     palette: TaskFlowPalette,
-    onPaletteChange: (TaskFlowPalette) -> Unit
+    onPaletteChange: (TaskFlowPalette) -> Unit,
+    username: String? = null,
+    onLogout: () -> Unit = {}
 ) {
     val completed = tasks.count { it.isCompleted }
     val pending = tasks.size - completed
@@ -90,16 +95,23 @@ fun TaskFlowScreen(
                 top = 28.dp,
                 bottom = 108.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { TaskHeader(palette, onPaletteChange) }
+            item { TaskHeader(palette, onPaletteChange, username, onLogout) }
             item { ProgressCard(progress, completed, tasks.size) }
             item { StatisticsSection(tasks.size, pending, completed) }
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Mis tareas", style = MaterialTheme.typography.titleLarge)
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        "Mantén el enfoque en lo importante.",
+                        "Mis tareas",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "${visible.size} de ${tasks.size}",
                         color = Muted,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -118,20 +130,16 @@ fun TaskFlowScreen(
                 }
             }
         }
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = onNewTaskClick,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(22.dp),
+                .padding(20.dp),
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White,
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Text(
-                "＋  Nueva tarea",
-                modifier = Modifier.padding(horizontal = 18.dp),
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = RoundedCornerShape(18.dp),
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text("Nueva tarea", fontWeight = FontWeight.SemiBold) }
+        )
     }
 }

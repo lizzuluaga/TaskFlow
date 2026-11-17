@@ -7,13 +7,15 @@ import androidx.room.RoomDatabase
 
 
 @Database(
-    entities = [TaskEntity::class],
-    version = 1,
+    entities = [TaskEntity::class, UserEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class TaskDatabase: RoomDatabase() {
 
     abstract fun taskDao(): TaskDao
+
+    abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
@@ -30,6 +32,10 @@ abstract class TaskDatabase: RoomDatabase() {
                     TaskDatabase::class.java,
                     "taskflow_database"
                 )
+                    // Al pasar de la versión 1 a la 2 (se agregan usuarios)
+                    // se recrea la base de datos. Las tareas viejas, que no
+                    // tenían dueño, se borran.
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also {
                         INSTANCE = it

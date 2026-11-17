@@ -19,11 +19,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY id DESC")
-    fun observeAll(): Flow<List<TaskEntity>>
+    // Solo las tareas del usuario indicado
+    @Query("SELECT * FROM tasks WHERE userId = :userId ORDER BY id DESC")
+    fun observeByUser(userId: Int): Flow<List<TaskEntity>>
 
-    @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
-    suspend fun findById(taskId: Int): TaskEntity?
+    @Query("SELECT * FROM tasks WHERE id = :taskId AND userId = :userId LIMIT 1")
+    suspend fun findById(taskId: Int, userId: Int): TaskEntity?
 
     @Insert(
         onConflict = OnConflictStrategy.REPLACE
@@ -36,4 +37,3 @@ interface TaskDao {
     @Delete
     suspend fun delete(task: TaskEntity)
 }
-

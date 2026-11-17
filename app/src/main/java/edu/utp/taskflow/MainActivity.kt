@@ -55,6 +55,13 @@ import edu.utp.taskflow.viewmodel.RemoteTaskViewModel
 import edu.utp.taskflow.viewmodel.RemoteTaskViewModelFactory
 
 import edu.utp.taskflow.viewmodel.TaskViewModelFactory
+import edu.utp.taskflow.viewmodel.AuthViewModel
+import edu.utp.taskflow.viewmodel.AuthViewModelFactory
+import edu.utp.taskflow.data.local.SessionManager
+import edu.utp.taskflow.data.repository.AuthRepository
+import edu.utp.taskflow.ui.screens.AuthScreen
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 
 
 private object TaskRoutes {
@@ -72,9 +79,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Config ROOM
-        val dao = TaskDatabase.getDatabase(applicationContext).taskDao()
-        val repository = TaskRepository(dao)
+        val database = TaskDatabase.getDatabase(applicationContext)
+        val session = SessionManager(applicationContext)
+
+        val repository = TaskRepository(database.taskDao(), session)
         val factory = TaskViewModelFactory(repository)
+
+        val authRepository = AuthRepository(database.userDao(), session)
+        val authFactory = AuthViewModelFactory(authRepository)
 
         // Config Retrofit
         val api = RetrofitClient.api
@@ -86,8 +98,54 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val taskViewModel: TaskViewModel = viewModel(factory = factory)
+            val authViewModel: AuthViewModel = viewModel(factory = authFactory)
 
-            TaskFlowDemo(taskViewModel, remoteFactory)
+            val currentUserId by authViewModel.currentUserId.collectAsStateWithLifecycle()
+            val currentUsername by authViewModel.currentUsername.collectAsStateWithLifecycle()
+
+            if (currentUserId == null) {
+                // Sin sesión: pedir login o registro
+                AuthGate(authViewModel)
+            } else {
+                // key: si cambia el usuario se reinicia la navegación
+                key(currentUserId) {
+                    TaskFlowDemo(
+                        taskViewModel = taskViewModel,
+                        remoteFactory = remoteFactory,
+                        username = currentUsername,
+                        onLogout = authViewModel::logout
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AuthGate(authViewModel: AuthViewModel) {
+    val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
+
+    var isRegister by rememberSaveable { mutableStateOf(false) }
+
+    TaskFlowTheme(palette = TaskFlowPalette.LAVANDA) {
+        Scaffold { innerPadding ->
+            Surface(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                AuthScreen(
+                    isRegister = isRegister,
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    onLogin = authViewModel::login,
+                    onRegister = authViewModel::register,
+                    onSwitchMode = {
+                        authViewModel.clearError()
+                        isRegister = !isRegister
+                    }
+                )
+            }
         }
     }
 }
@@ -96,14 +154,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TaskFlowDemo(
     taskViewModel: TaskViewModel = viewModel(),
-    remoteFactory: RemoteTaskViewModelFactory
+    remoteFactory: RemoteTaskViewModelFactory,
+    username: String? = null,
+    onLogout: () -> Unit = {}
 ) {
     val tasks by taskViewModel.tasks.collectAsStateWithLifecycle()
     val selectedFilter by taskViewModel.selectedFilter.collectAsStateWithLifecycle()
 
     // Único estado interactivo de la base visual: cambiar la paleta.
     // Las operaciones sobre tareas siguen pendientes para la clase.
-    var palette by remember { mutableStateOf(TaskFlowPalette.OCEAN) }
+    var palette by remember { mutableStateOf(TaskFlowPalette.LAVANDA) }
 
     var showNewTaskSheet by remember {
         mutableStateOf(false)
@@ -239,7 +299,9 @@ fun TaskFlowDemo(
                                 showNewTaskSheet = true
                             },
                             palette = palette,
-                            onPaletteChange = { palette = it }
+                            onPaletteChange = { palette = it },
+                            username = username,
+                            onLogout = onLogout
                         )
                     }
 
